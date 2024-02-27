@@ -14,6 +14,7 @@
 #define MLPACK_METHODS_LINEAR_REGRESSION_LINEAR_REGRESSION_IMPL_HPP
 
 #include "linear_regression.hpp"
+#include <mlpack/core/util/size_checks.hpp>
 
 namespace mlpack {
 
@@ -186,7 +187,7 @@ LinearRegression<ModelMatType>::Train(const MatType& predictors,
   const size_t nCols = predictors.n_cols;
 
   // TODO: avoid copy if possible.
-  arma::Mat<ElemType> p = ConvTo<arma::Mat<ElemType>>::From(predictors);
+  arma::Mat<ElemType> p = arma::conv_to<arma::Mat<ElemType>>::from(predictors);
   arma::Row<ElemType> r = responses;
 
   // Here we add the row of ones to the predictors.
@@ -297,22 +298,18 @@ LinearRegression<ModelMatType>::ComputeError(
   if (intercept)
   {
     // Ensure that we have the correct number of dimensions in the dataset.
-    if (nRows != parameters.n_rows - 1)
-    {
-      Log::Fatal << "The test data must have the same number of columns as the "
-          "training file." << std::endl;
-    }
+    util::CheckSameDimensionality(predictors, parameters.n_rows - 1,
+        "LinearRegression::ComputeError()", "predictors");
+
     temp = responses - (parameters(0) +
         parameters.subvec(1, parameters.n_elem - 1).t() * predictors);
   }
   else
   {
     // Ensure that we have the correct number of dimensions in the dataset.
-    if (nRows != parameters.n_rows)
-    {
-      Log::Fatal << "The test data must have the same number of columns as the "
-          "training file." << std::endl;
-    }
+    util::CheckSameDimensionality(predictors, parameters.n_rows,
+        "LinearRegression::ComputeError()", "predictors");
+
     temp = responses - parameters.t() * predictors;
   }
   const ElemType cost = dot(temp, temp) / nCols;
@@ -330,7 +327,7 @@ void LinearRegression<ModelMatType>::serialize(Archive& ar,
     // Old versions represented `parameters` as an arma::vec.
     arma::vec parametersTmp;
     ar(cereal::make_nvp("parameters", parametersTmp));
-    parameters = ConvTo<ModelColType>::From(parametersTmp);
+    parameters = arma::conv_to<ModelColType>::from(parametersTmp);
   }
   else
   {
